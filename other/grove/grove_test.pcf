@@ -1,0 +1,15 @@
+set_io switches[0] 37
+set_io switches[1] 38
+set_io switches[2] 39
+set_io switches[3] 41
+
+set_io led[0] 71
+set_io led[1] 67
+set_io led[2] 68
+set_io led[3] 70
+
+# Buttons
+set_io B1 63 # Push Button 1
+set_io B2 64 # Push Button 2
+
+set_io clk 129

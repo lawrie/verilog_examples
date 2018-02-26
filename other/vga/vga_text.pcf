@@ -1,0 +1,35 @@
+# ##############################################################################
+
+# iCEcube PCF
+
+# Version:            2017.08.27940
+
+# File Generated:     Dec 26 2017 20:40:09
+
+# Family & Device:    iCE40HX4K
+
+# Package:            TQ144
+
+# ##############################################################################
+
+###IOSet List 11
+set_io CLK 129
+
+# VGA Output - Matches Digilent PmodVGA plugged into PMOD7/8/9/10
+set_io RED[3]     15 # PMOD35 = PMOD 9/10 pin  5
+set_io RED[2]     16 # PMOD34 = PMOD 9/10 pin  7
+set_io RED[1]     19 # PMOD33 = PMOD 9/10 pin  9
+set_io RED[0]     20 # PMOD32 = PMOD 9/10 pin 11
+
+set_io GREEN[3]    1 # PMOD27 = PMOD  7/8 pin  5
+set_io GREEN[2]    2 # PMOD26 = PMOD  7/8 pin  7
+set_io GREEN[1]    9 # PMOD25 = PMOD  7/8 pin  9
+set_io GREEN[0]   10 # PMOD24 = PMOD  7/8 pin 11
+
+set_io BLUE[3]    11 # PMOD39 = PMOD 9/10 pin  6
+set_io BLUE[2]    12 # PMOD38 = PMOD 9/10 pin  8
+set_io BLUE[1]    17 # PMOD37 = PMOD 9/10 pin 10
+set_io BLUE[0]    18 # PMOD36 = PMOD 9/10 pin 12
+
+set_io HS       8 # PMOD28 = PMOD  7/8 pin 12
+set_io VS       7 # PMOD29 = PMOD  7/8 pin 10
