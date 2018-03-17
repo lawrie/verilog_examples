@@ -1,0 +1,4 @@
+set_io AUDIO 34
+
+set_io CLK 129
+

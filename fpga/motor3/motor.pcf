@@ -1,0 +1,40 @@
+set_io CLK 129 
+
+set_io BUTTON1 63 
+set_io BUTTON2 64 
+
+set_io SWITCH1 37
+
+set_io ENABLE1  143
+set_io DIRECTION1 114
+set_io CHA1 112
+set_io CHB1 107
+
+set_io ENABLE2  144
+set_io DIRECTION2 113
+set_io CHA2 110
+set_io CHB2 106
+
+set_io LED[0] 71
+set_io LED[1] 67
+set_io LED[2] 68
+set_io LED[3] 70
+
+set_io DIGIT[0] 85
+set_io SEG1[0] 88
+set_io SEG1[1] 91
+set_io SEG1[2] 94
+set_io SEG1[3] 97
+set_io SEG1[4] 99
+set_io SEG1[5] 102
+set_io SEG1[6] 105
+
+set_io DIGIT[1] 1
+set_io SEG2[0] 2
+set_io SEG2[1] 9
+set_io SEG2[2] 10
+set_io SEG2[3] 15
+set_io SEG2[4] 16
+set_io SEG2[5] 19
+set_io SEG2[6] 20
+

@@ -1,0 +1,15 @@
+set_io CLK 129
+
+# Keyboard - Matches Digilent PmodPS/2 plugged into lower half of PMOD11/12
+set_io PS2_CLK  26 # PMOD46 = PMOD 11/12 pin 8
+set_io PS2_DATA 32 # PMOD44 = PMOD 11/12 pin 12
+
+set_io LED[0] 71
+set_io LED[1] 67
+set_io LED[2] 68
+set_io LED[3] 70
+
+set_io GRESET 128
+
+set_io UART_TX 85
+

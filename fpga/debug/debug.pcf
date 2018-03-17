@@ -1,0 +1,10 @@
+set_io clk 129
+
+set_io greset 128
+
+set_io UART_TX 85
+
+#set_io LED[0] 71
+#set_io LED[1] 67
+#set_io LED[2] 68
+#set_io LED[3] 70
