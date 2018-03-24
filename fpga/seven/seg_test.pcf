@@ -1,0 +1,30 @@
+set_io CLK 129
+
+set_io D[0] 41
+set_io D[1] 39
+set_io D[2] 38
+set_io D[3] 37
+
+set_io DIGIT[0] 85
+set_io SEG1[0] 88
+set_io SEG1[1] 91
+set_io SEG1[2] 94
+set_io SEG1[3] 97
+set_io SEG1[4] 99
+set_io SEG1[5] 102
+set_io SEG1[6] 105
+
+
+set_io DIGIT[1] 1
+set_io SEG2[0] 2
+set_io SEG2[1] 9
+set_io SEG2[2] 10
+set_io SEG2[3] 15
+set_io SEG2[4] 16
+set_io SEG2[5] 19
+set_io SEG2[6] 20
+
+set_io leds[0] 71
+set_io leds[1] 67
+set_io leds[2] 68
+set_io leds[3] 70
