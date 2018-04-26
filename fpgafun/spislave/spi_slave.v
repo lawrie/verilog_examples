@@ -1,10 +1,9 @@
-module SPI_slave(clk, SCK, MOSI, MISO, SSEL, LED);
+module SPI_slave(clk, SCK, MOSI, MISO, SSEL, DATA);
 input clk;
 
 input SCK, SSEL, MOSI;
 output MISO;
-
-output LED;
+output reg[7:0] DATA;
 
 // sync SCK to the FPGA clock using a 3-bits shift register
 reg [2:0] SCKr;  always @(posedge clk) SCKr <= {SCKr[1:0], SCK};
@@ -43,9 +42,7 @@ end
 
 always @(posedge clk) byte_received <= SSEL_active && SCK_risingedge && (bitcnt==3'b111);
 
-// we use the LSB of the data received to control an LED
-reg LED;
-always @(posedge clk) if(byte_received) LED <= byte_data_received[0];
+always @(posedge clk) if(byte_received) DATA <= byte_data_received;
 
 reg [7:0] byte_data_sent;
 
