@@ -1,0 +1,11 @@
+set_io CLK 129
+
+set_io SSEL 71
+set_io MISO 67
+set_io MOSI 68
+set_io SCK 70
+
+set_io MCLK 34
+set_io LRCK 33
+set_io SCLK 22
+set_io SDIN 21
