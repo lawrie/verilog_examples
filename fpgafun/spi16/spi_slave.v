@@ -1,9 +1,10 @@
-module SPI_slave(clk, SCK, MOSI, MISO, SSEL, DATA);
+module SPI_slave(clk, SCK, MOSI, MISO, SSEL, DATA, VALID);
 input clk;
 
 input SCK, SSEL, MOSI;
 output MISO;
-output reg[7:0] DATA;
+output reg[15:0] DATA;
+output VALID;
 
 // sync SCK to the FPGA clock using a 3-bits shift register
 reg [2:0] SCKr;  always @(posedge clk) SCKr <= {SCKr[1:0], SCK};
@@ -20,51 +21,57 @@ wire SSEL_endmessage = (SSELr[2:1]==2'b01);  // message stops at rising edge
 reg [1:0] MOSIr;  always @(posedge clk) MOSIr <= {MOSIr[0], MOSI};
 wire MOSI_data = MOSIr[1];
 
-// we handle SPI in 8-bits format, so we need a 3 bits counter to count the bits as they come in
-reg [2:0] bitcnt;
+// we handle SPI in 16-bits format, so we need a 4 bits counter to count the bits as they come in
+reg [3:0] bitcnt;
 
-reg byte_received;  // high when a byte has been received
-reg [7:0] byte_data_received;
+reg word_received;  // high when a byte has been received
+reg [15:0] data_received;
 
 always @(posedge clk)
 begin
   if(~SSEL_active)
-    bitcnt <= 3'b000;
+    bitcnt <= 4'b0000;
   else
   if(SCK_risingedge)
   begin
-    bitcnt <= bitcnt + 3'b001;
+    bitcnt <= bitcnt + 4'b0001;
 
     // implement a shift-left register (since we receive the data MSB first)
-    byte_data_received <= {byte_data_received[6:0], MOSI_data};
+    data_received <= {data_received[14:0], MOSI_data};
   end
 end
 
-always @(posedge clk) byte_received <= SSEL_active && SCK_risingedge && (bitcnt==3'b111);
+always @(posedge clk) word_received <= SSEL_active && SCK_risingedge && (bitcnt==4'b1111);
 
-always @(posedge clk) if(byte_received) DATA <= byte_data_received;
+always @(posedge clk) begin
+  VALID <= 0;
+  if(word_received) begin
+    DATA <= data_received;
+    VALID <= 1;
+  end
+end
 
-reg [7:0] byte_data_sent;
+reg [15:0] data_sent;
 
-reg [7:0] cnt;
-always @(posedge clk) if(SSEL_startmessage) cnt<=cnt+8'h1;  // count the messages
+reg [16:0] cnt;
+always @(posedge clk) if(SSEL_startmessage) cnt<=cnt+16'h0001;  // count the messages
 
 always @(posedge clk)
 if(SSEL_active)
 begin
   if(SSEL_startmessage)
-    byte_data_sent <= cnt;  // first byte sent in a message is the message count
+    data_sent <= cnt;  // first word sent in a message is the message count
   else
   if(SCK_fallingedge)
   begin
-    if(bitcnt==3'b000)
-      byte_data_sent <= 8'h00;  // after that, we send 0s
+    if(bitcnt==4'b0000)
+      data_sent <= 16'h0000;  // after that, we send 0s
     else
-      byte_data_sent <= {byte_data_sent[6:0], 1'b0};
+      data_sent <= {data_sent[14:0], 1'b0};
   end
 end
 
-assign MISO = byte_data_sent[7];  // send MSB first
+assign MISO = data_sent[15];  // send MSB first
 // we assume that there is only one slave on the SPI bus
 // so we don't bother with a tri-state buffer for MISO
 // otherwise we would need to tri-state MISO when SSEL is inactive

@@ -1,9 +1,10 @@
-module SPI_slave(clk, SCK, MOSI, MISO, SSEL, DATA);
+module SPI_slave(clk, SCK, MOSI, MISO, SSEL, DATA, VALID);
 input clk;
 
 input SCK, SSEL, MOSI;
 output MISO;
 output reg[7:0] DATA;
+output VALID;
 
 // sync SCK to the FPGA clock using a 3-bits shift register
 reg [2:0] SCKr;  always @(posedge clk) SCKr <= {SCKr[1:0], SCK};
@@ -42,7 +43,13 @@ end
 
 always @(posedge clk) byte_received <= SSEL_active && SCK_risingedge && (bitcnt==3'b111);
 
-always @(posedge clk) if(byte_received) DATA <= byte_data_received;
+always @(posedge clk) begin
+  VALID <= 0;
+  if(byte_received) begin
+    DATA <= byte_data_received;
+    VALID <= 1;
+  end
+end
 
 reg [7:0] byte_data_sent;
 

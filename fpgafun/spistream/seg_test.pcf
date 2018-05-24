@@ -1,0 +1,17 @@
+set_io CLK 129
+
+set_io DIGIT 1
+set_io SEG[0] 2
+set_io SEG[1] 9
+set_io SEG[2] 10
+set_io SEG[3] 15
+set_io SEG[4] 16
+set_io SEG[5] 19
+set_io SEG[6] 20
+
+set_io SSEL 71
+set_io MISO 67
+set_io MOSI 68
+set_io SCK 70
+
+set_io PWM_out 34

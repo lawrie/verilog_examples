@@ -3,7 +3,7 @@ input clk;
 
 input SCK, SSEL, MOSI;
 output MISO;
-output reg[7:0] DATA;
+output reg[15:0] DATA;
 
 // sync SCK to the FPGA clock using a 3-bits shift register
 reg [2:0] SCKr;  always @(posedge clk) SCKr <= {SCKr[1:0], SCK};
@@ -21,22 +21,22 @@ reg [1:0] MOSIr;  always @(posedge clk) MOSIr <= {MOSIr[0], MOSI};
 wire MOSI_data = MOSIr[1];
 
 // we handle SPI in 8-bits format, so we need a 3 bits counter to count the bits as they come in
-reg [2:0] bitcnt;
+reg [3:0] bitcnt;
 
 reg byte_received;  // high when a byte has been received
-reg [7:0] byte_data_received;
+reg [15:0] byte_data_received;
 
 always @(posedge clk)
 begin
   if(~SSEL_active)
-    bitcnt <= 3'b000;
+    bitcnt <= 4'b0000;
   else
   if(SCK_risingedge)
   begin
-    bitcnt <= bitcnt + 3'b001;
+    bitcnt <= bitcnt + 4'b0001;
 
     // implement a shift-left register (since we receive the data MSB first)
-    byte_data_received <= {byte_data_received[6:0], MOSI_data};
+    byte_data_received <= {byte_data_received[14:0], MOSI_data};
   end
 end
 
