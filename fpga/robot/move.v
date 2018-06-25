@@ -12,6 +12,8 @@ module move (
   input req,
   input [2:0] op,
   input [31:0] operand,
+  output [31:0] todo,
+  input [7:0] speed,
   output reg done);
 
 localparam forwards = 3'd0,
@@ -22,8 +24,8 @@ localparam forwards = 3'd0,
 
 reg direction1 = 0, direction2 = 0;
 
-assign DIRECTION1 = direction1;
-assign DIRECTION2 = direction2;
+assign DIRECTION1 = ~direction1;
+assign DIRECTION2 = ~direction2;
 
 initial done <= 0;
 
@@ -41,6 +43,7 @@ assign LED[0] = req;
 assign LED[1] = new_request;
 assign LED[2] = req_processed;
 assign LED[3] = done;
+assign todo = target - count1;
 
 // Use the quadrature to get the positions of each motor
 reg [31:0] count1, count2;
@@ -62,31 +65,31 @@ begin
   if (new_request) begin
     case (op)
     forwards: begin
-         target <= count1 - operand; // forwards
+         target <= count1 + operand; // forwards
          direction1 <= 0;
          direction2 <= 0;
-         duty <= 200;
+         duty <= speed;
        end
     
     backwards: begin
-         target <= count1 + operand; // backwards
+         target <= count1 - operand; // backwards
          direction1 <= 1;
          direction2 <= 1;
-         duty <= 200;
+         duty <= speed;
        end      
     
     left: begin
          target <= count1 + operand; // left
          direction1 <= 1;
          direction2 <= 0;
-         duty <= 200;
+         duty <= speed;
        end      
     
     right: begin
          target <= count1 - operand; // right
          direction1 <= 0;
          direction2 <= 1;
-         duty <= 200;
+         duty <= speed;
        end      
     
     stop: begin
@@ -94,7 +97,6 @@ begin
          direction1 <= 0;
          direction2 <= 0;
          duty <= 0;
-         done <= 1;
        end      
     endcase
 
