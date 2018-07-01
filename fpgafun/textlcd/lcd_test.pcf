@@ -1,0 +1,15 @@
+set_io RxD 88
+set_io clk 129
+
+set_io LCD_RS 34
+set_io LCD_E 32
+
+set_io LCD_DataBus[0] 12
+set_io LCD_DataBus[1] 16
+set_io LCD_DataBus[2] 11
+set_io LCD_DataBus[3] 15
+set_io LCD_DataBus[4] 18
+set_io LCD_DataBus[5] 20
+set_io LCD_DataBus[6] 17
+set_io LCD_DataBus[7] 19
+
