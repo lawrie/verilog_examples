@@ -1,0 +1,12 @@
+set_io clk 129
+
+set_io DAC_clk 18
+
+set_io DAC_data[0] 25
+set_io DAC_data[1] 21
+set_io DAC_data[2] 26
+set_io DAC_data[3] 22
+set_io DAC_data[4] 31
+set_io DAC_data[5] 33
+set_io DAC_data[6] 32
+set_io DAC_data[7] 34
