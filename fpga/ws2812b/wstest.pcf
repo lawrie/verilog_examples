@@ -1,0 +1,4 @@
+set_io clk 129
+set_io reset 63
+set_io DO 34
+
