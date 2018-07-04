@@ -1,0 +1,50 @@
+set_io   clk100      129
+
+set_io   vga_h_sync  8
+set_io   vga_v_sync  7
+
+set_io   vga_R[0]    20
+set_io   vga_R[1]    19
+set_io   vga_R[2]    16
+set_io   vga_R[3]    15
+#set_io   vga_R    15
+
+set_io   vga_G[0]    10
+set_io   vga_G[1]    9
+set_io   vga_G[2]    2
+set_io   vga_G[3]    1
+#set_io   vga_G    1
+
+set_io   vga_B[0]    18
+set_io   vga_B[1]    17
+set_io   vga_B[2]    12
+set_io   vga_B[3]    11
+#set_io   vga_B    11
+
+set_io led[0] 34
+set_io led[1] 33
+set_io led[2] 22
+set_io led[3] 21
+set_io led[4] 32
+set_io led[5] 31
+set_io led[6] 26
+set_io led[7] 25
+
+set_io vsync 99
+set_io href 98
+
+set_io p_clock 102
+set_io x_clock 101
+
+set_io p_data[7] 105
+set_io p_data[6] 104
+set_io p_data[5] 107
+set_io p_data[4] 106
+set_io p_data[3] 112
+set_io p_data[2] 110
+set_io p_data[1] 114
+set_io p_data[0] 113
+
+set_io frame_done 71
+#set_io pixel_valid 67
+
