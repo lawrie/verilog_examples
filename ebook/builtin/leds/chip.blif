@@ -11,8 +11,8 @@
 1 1
 .names $true led[1]
 1 1
-.names $false led[2]
+.names $true led[2]
 1 1
-.names $false led[3]
+.names $true led[3]
 1 1
 .end

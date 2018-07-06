@@ -2,5 +2,5 @@ module leds(
   output [3:0] led 
 ); 
 
-  assign led = 3; 
+  assign led = 4'b1111; 
 endmodule 
