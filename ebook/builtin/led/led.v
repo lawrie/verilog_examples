@@ -1,6 +1,7 @@
 module led( 
-  output [3:0] led 
+  output blue_led 
 ); 
 
-  assign led = 3; 
+  assign blue_led=1; 
+
 endmodule 

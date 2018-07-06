@@ -2,17 +2,11 @@
 
 .model led
 .inputs
-.outputs led[0] led[1] led[2] led[3]
+.outputs blue_led
 .names $false
 .names $true
 1
 .names $undef
-.names $true led[0]
-1 1
-.names $true led[1]
-1 1
-.names $false led[2]
-1 1
-.names $false led[3]
+.names $true blue_led
 1 1
 .end

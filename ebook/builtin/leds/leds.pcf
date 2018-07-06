@@ -1,0 +1,5 @@
+set_io led[0] 71
+set_io led[1] 67
+set_io led[2] 68
+set_io led[3] 70
+
