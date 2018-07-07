@@ -1,0 +1,8 @@
+set_io leds[0] 105 
+set_io leds[1] 102 
+set_io leds[2] 99 
+set_io leds[3] 97 
+set_io leds[4] 104 
+set_io leds[5] 101 
+set_io leds[6] 98 
+set_io leds[7] 96
