@@ -1,0 +1,6 @@
+set_io leds[0] 71 
+set_io leds[1] 67 
+set_io leds[2] 68 
+set_io leds[3] 70 
+
+set_io button 63
