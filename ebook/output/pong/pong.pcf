@@ -1,0 +1,8 @@
+set_io   clk100              129
+set_io   vga_h_sync             8
+set_io   vga_v_sync             7
+set_io   vga_R      16
+set_io   vga_G     1
+set_io   vga_B      11
+set_io   quadA     105
+set_io   quadB     102
