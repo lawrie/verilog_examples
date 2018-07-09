@@ -1,0 +1,11 @@
+set_io clk 129 
+
+set_io digit 1 
+
+set_io seg[0] 2 
+set_io seg[1] 9 
+set_io seg[2] 10 
+set_io seg[3] 15 
+set_io seg[4] 16 
+set_io seg[5] 19 
+set_io seg[6] 20
