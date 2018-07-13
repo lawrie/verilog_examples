@@ -41,7 +41,7 @@ void loop() {
   DOSFS.begin();
   File file = DOSFS.open(fileName, "r");
   if (file) {
-    // Send the file to the 
+    // Send the file to the Ice40
     Serial.print("Sending: ");
     Serial.println(fileName);
     digitalWrite(LED_BUILTIN, 1);
