@@ -35,11 +35,12 @@ SB_PLL40_PAD #(
 assign ad_clk = counter[1];
 
 reg [24:0] counter;
-reg [7:0] trigger = 8'ha0;
+reg [7:0] trigger;
 reg trigger_mode;
 reg waiting_for_trigger;
 wire take_samples;
 reg rising, falling;
+reg [1:0]  trigger_type;
 reg [7:0] last_ad;
 reg [7:0] mode;
 reg [7:0] speed;
@@ -57,7 +58,9 @@ always @(posedge clk) begin
   else if ($signed(ad) < $signed(last_ad)) falling <= 1;
  
   if (take_samples) waiting_for_trigger <= 1;
-  if (waiting_for_trigger && (mode != 0 || ad >= trigger)) begin
+  if (waiting_for_trigger && (mode != 0 || trigger_type == 2 ||
+     ((rising && trigger_type == 0 && ad >= trigger) || 
+      (falling && trigger_type == 1 && ad <= trigger)))) begin
     waiting_for_trigger <= 0;
     sample_counter <= 0;
     prescaler <= 0;
@@ -73,6 +76,7 @@ always @(posedge clk) begin
       4: samples[sample_counter] <= sample_counter[8] ? -128 : 127;
       5: samples[sample_counter] <= speed; // debug
       6: samples[sample_counter] <= trigger; // debug
+      7: samples[sample_counter] <= trigger_type; // debug
       endcase
       sample_counter <= sample_counter + 1;
       prescaler <= 0;
@@ -111,6 +115,7 @@ always @(posedge clk) begin
 			0: mode <= spi_rxdata;
                         1: speed <= spi_rxdata;
 			2: trigger <= spi_rxdata;
+			3: trigger_type <= spi_rxdata;
 			endcase
 			received <= received + 1;
 		end
