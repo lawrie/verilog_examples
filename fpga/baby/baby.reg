@@ -1,0 +1,52 @@
+module baby(
+  input clk100,
+  input button,
+  output [3:0] led,
+  output [7:0] led2
+);
+
+parameter MAX_LINES = 32;
+
+reg [31:0] a;
+wire [31:0] pi;
+reg [4:0] ci, l;
+reg [2:0] f;
+reg [2:0] state;
+reg [31:0] lines [0:MAX_LINES-1];
+reg [1:0] counter;
+
+wire clk =  counter[1];
+
+initial $readmemh("lines.hex", lines);
+
+always @(posedge clk100) counter <= counter + 1;
+
+localparam WAITING = 3'd0, SCAN1 = 3'd1, ACTION1 = 3'd2, 
+           SCAN2 = 3'd3, ACTION2 = 3'd4, STOPPED = 3'd5;
+
+always @(posedge clk) begin
+  case (state)
+    WAITING: if (~button) state = SCAN1;
+    SCAN1: begin ci <= ci + 1; state <= ACTION1; end
+    ACTION1: begin pi = lines[ci]; state <= SCAN2; end
+    SCAN2: begin l <= pi[31:27]; f <= pi[18:16]; state <= ACTION2; end
+    ACTION2:
+      begin
+        state <= SCAN1;
+        case (f)
+          3'd0: ci <= lines[l];                               // JMP
+          3'd1: ci <= ci + lines[l];                          // JRP
+          3'd2: a <= -lines[l];                               // LDN
+          3'd3: lines[l] <= a;                                // STO
+          3'd4, 3'd5: a <= a - lines[l];                      // SUB
+          3'd6: if (a < 0) ci <= ci + 1;                      // CMP
+          3'd7:state <= STOPPED;                              // STOP
+        endcase
+      end
+   endcase
+end
+
+assign led = {state, state == STOPPED}; 
+assign led2 = lines[31][7:0];
+endmodule
+
