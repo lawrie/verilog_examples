@@ -1,0 +1,22 @@
+set_io clk100 129
+set_io resetn 63
+
+set_io panel_r0  143
+set_io panel_g0  114
+set_io panel_b0  112
+set_io panel_r1  144
+set_io panel_g1  113
+set_io panel_b1  110
+set_io panel_a   105
+set_io panel_b   102
+set_io panel_c   99
+set_io panel_d   97
+set_io panel_oe  104
+set_io panel_stb 101
+set_io panel_clk 98
+
+set_io led[0] 71
+set_io led[1] 67
+set_io led[2] 68
+set_io led[3] 70
+
