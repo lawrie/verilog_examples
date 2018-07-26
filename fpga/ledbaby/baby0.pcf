@@ -1,0 +1,18 @@
+set_io clk100 129
+
+set_io button 63
+
+set_io led[0] 71
+set_io led[1] 67
+set_io led[2] 68 
+set_io led[3] 70
+
+set_io led2[0] 105
+set_io led2[1] 102
+set_io led2[2] 99
+set_io led2[3] 97
+set_io led2[4] 104
+set_io led2[5] 101
+set_io led2[6] 98
+set_io led2[7] 96
+
