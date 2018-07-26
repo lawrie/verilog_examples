@@ -146,7 +146,7 @@ always @(posedge clk) begin
     ACTION3:
       begin
         state <= SCAN0;
-        if (f == 3) write_led_line(addr, a -d, W_COLOR);
+        if (f == 3) write_led_line(addr, a, W_COLOR);
 	else if (f < 6) write_led_line(addr, d, R_COLOR);
         case (f)
           0: ci <= d;                               // JMP
