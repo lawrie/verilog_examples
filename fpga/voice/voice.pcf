@@ -1,0 +1,30 @@
+set_io clk 129
+
+set_io led[0] 143
+set_io led[1] 114
+set_io led[2] 112
+set_io led[3] 107
+set_io led[4] 144
+set_io led[5] 113
+set_io led[6] 110
+set_io led[7] 106
+
+set_io button2 64 
+
+# QSPI
+set_io qss      81
+set_io qck      82
+set_io qd[0]    83
+set_io qd[1]    84
+set_io qd[2]    79
+set_io qd[3]    80
+
+set_io ss 34
+set_io miso 22
+set_io sck 21
+
+set_io led2[0] 71
+set_io led2[1] 67
+set_io led2[2] 68
+set_io led2[3] 70
+
