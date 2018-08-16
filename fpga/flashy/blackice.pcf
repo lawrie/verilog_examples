@@ -1,0 +1,12 @@
+# 100Mhz clock
+set_io CLK100 129
+
+# QSPI
+set_io QSS	81
+set_io QCK	82
+set_io QD[0]	83
+set_io QD[1]	84
+set_io QD[2]	79
+set_io QD[3]	80
+
+set_io AUDIO 34

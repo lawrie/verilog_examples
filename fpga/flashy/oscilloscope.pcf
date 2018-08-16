@@ -1,0 +1,33 @@
+set_io clk_100 129
+
+set_io ad_clk 20 
+
+set_io ad[0] 21
+set_io ad[1] 25
+set_io ad[2] 22
+set_io ad[3] 26
+set_io ad[4] 33
+set_io ad[5] 31
+set_io ad[6] 34
+set_io ad[7] 32
+
+set_io led[0] 143
+set_io led[1] 114
+set_io led[2] 112
+set_io led[3] 107
+set_io led[4] 144
+set_io led[5] 113
+set_io led[6] 110
+set_io led[7] 106
+
+set_io button2 64 
+
+# QSPI
+set_io QSS      81
+set_io QCK      82
+set_io QD[0]    83
+set_io QD[1]    84
+set_io QD[2]    79
+set_io QD[3]    80
+
+set_io test 19
