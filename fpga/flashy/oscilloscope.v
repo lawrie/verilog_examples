@@ -6,7 +6,7 @@ module top(
   input QCK, QSS,
   inout [3:0] QD,
   output button2,
-  output test
+  //output test
 );
 
 reg [7:0] samples [0:4095];
@@ -26,13 +26,13 @@ reg [7:0] speed;
 reg [7:0] prescaler;
 reg [7:0] min, max;
 
-localparam TEST_BITS = 2;
+//localparam TEST_BITS = 2;
 
-reg [TEST_BITS:0] test_counter;
+//reg [TEST_BITS:0] test_counter;
 
-assign test = test_counter[TEST_BITS];
+//assign test = test_counter[TEST_BITS];
 
-always @(posedge clk) test_counter <= test_counter + 1;
+//always @(posedge clk) test_counter <= test_counter + 1;
 
 reg[12:0] sample_counter; // top bit indicates sample taken
 
@@ -71,7 +71,7 @@ always @(posedge clk) begin
   end
 end
   
-assign led = trigger;
+assign led = speed;
 assign button2 = ~(&counter); // Ask for samples on timer
 
 reg writing;

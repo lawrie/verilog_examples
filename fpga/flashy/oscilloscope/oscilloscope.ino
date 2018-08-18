@@ -55,11 +55,11 @@ static unsigned char parameters[14];
 
 // Parameters
 static float volts_per_div = 1.0; // volts
-static long nanos_per_div = 1000;  //microseconds
+static long nanos_per_div = 1000;  // nanoseconds
 static char mode = 0; // 0 = normal, others test
-static char trigger_type = 0; 
+static char trigger_type = 2; 
 static float trigger = 0.0; // volts
-static bool ac_dc; // false: dc, true ac
+static bool ac_dc = true; // false: dc, true ac
 static float offset = 0; // offset in volts
 static int dc_offset = 0; // dc offset when in ac mode
 static boolean draw_fft = false;
@@ -364,7 +364,7 @@ void drawBoxes() {
 
   switch (selected) {
     case 0: value = (((int) (volts_per_div * 4)) - 1) * 4096; break;
-    case 1: value = ((int) log2(speed+1))  * 7000; break;
+    case 1: value = ((int) log2(speed+1))  * 5461; break;
     case 2: value = mode * 8192; break;
     case 3: value = trigger_type * 16384; break;
     case 4: value = (((int) (trigger * 4))  * 819) + 32768; break;
@@ -426,7 +426,7 @@ void drawBoxes() {
 
   switch (selected) {
     case 0: volts_per_div = ((float) (value / 4096) + 1) / 4; break;
-    case 1: speed = pow(2, (value / 7000)) -1; break;
+    case 1: speed = pow(2, (value / 5461)) -1; break;
     case 2: mode = value/8192; break;
     case 3: trigger_type = value / 16384; break;
     case 4: trigger = (((float) value - 32768) / 819) / 4; break;
@@ -435,7 +435,7 @@ void drawBoxes() {
     case 7: probe_x10 = value / 32768; break;
     case 8: draw_fft = value /32768; break;
   }
-  nanos_per_div = (speed + 1) * 1000;
+  nanos_per_div = ((speed + 1) * 125);
 
   byte tag = GD.inputs.tag;
 
@@ -500,25 +500,28 @@ void drawGraph() {
   GD.ColorRGB(0x0000cd);
   long points = 0;
   int oldx, oldy;
+  int divisor = (nanos_per_div >= 1000 ? 1 : 1024 / nanos_per_div);
+  
   for(int i=0;i<SAMPLES_PER_PAGE;i++) {
+    int ii = i/ divisor;
     int px = (i*W)/SAMPLES_PER_PAGE;
-    int py = H/2 - ((int) GRID_SIZE*offset/volts_per_div) -((int) (samples[i] - dc_offset)/(volts_per_div*VOLTS_FACTOR));
+    int py = H/2 - ((int) GRID_SIZE*offset/volts_per_div) -((int) (samples[ii] - dc_offset)/(volts_per_div*VOLTS_FACTOR));
     if (i == 0 || px != oldx || abs(py - oldy) > 0) {
       if (points++ > MAX_POINTS) return;
       GD.Vertex2ii(px,py);
     }
     oldx = px;
     oldy = py;
-    if (vertical && i > 0 && abs(samples[i-1] - samples[i]) > 20) {
-      if ((int) samples[i] < (int) samples[i-1]) {
-        for(int j=(int) samples[i]+1;j<(int) samples[i-1]-1;j+= 2) {
+    if (vertical && i > 0 && abs(samples[ii-1] - samples[ii]) > 20) {
+      if ((int) samples[ii] < (int) samples[ii-1]) {
+        for(int j=(int) samples[ii]+1;j<(int) samples[ii-1]-1;j+= 2) {
           if (points++ > MAX_POINTS) return;
           px = (i*W)/SAMPLES_PER_PAGE;
           py = H/2 - ((int) GRID_SIZE*offset/volts_per_div) -((j - dc_offset)/(volts_per_div*VOLTS_FACTOR));
           GD.Vertex2ii(px, py);
         }
       } else {
-        for(int j=(int) samples[i-1]+1;j<(int) samples[i]-1;j+= 2) {     
+        for(int j=(int) samples[ii-1]+1;j<(int) samples[ii]-1;j+= 2) {     
           if (points++ > MAX_POINTS) return;
           char buf[10];
           px = (i*W)/SAMPLES_PER_PAGE;
@@ -577,7 +580,7 @@ void loop() {
     long rms = 0;
 
     parameters[0] = mode;
-    parameters[1] = speed;
+    parameters[1] = speed / 8;
     parameters[2] = (int) ((trigger / VOLTS_MULTIPLIER) + 128 + ZERO_OFFSET);
     parameters[3] = trigger_type;
 
