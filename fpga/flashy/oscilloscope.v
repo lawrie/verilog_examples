@@ -6,14 +6,12 @@ module top(
   input QCK, QSS,
   inout [3:0] QD,
   output button2,
-//  output test
+  output test
 );
 
-parameter ClkFreq = 32031250; // Hz
 reg [7:0] samples [0:4095];
 
 // Clock Generator
-//wire clk = clk_100;
 wire clk = ad_clk;
 
 reg [22:0] counter;
@@ -22,29 +20,31 @@ reg trigger_mode;
 reg waiting_for_trigger;
 wire take_samples;
 reg [1:0]  trigger_type;
-reg [7:0] last_ad;
+reg [7:0] reg_ad, last_ad;
 reg [7:0] mode;
 reg [7:0] speed;
 reg [7:0] prescaler;
 reg [7:0] min, max;
 
-localparam TEST_BITS = 7;
+localparam TEST_BITS = 2;
 
-//reg [TEST_BITS:0] test_counter;
+reg [TEST_BITS:0] test_counter;
 
-//assign test = test_counter[TEST_BITS];
+assign test = test_counter[TEST_BITS];
 
-//always @(posedge clk_100) test_counter <= test_counter + 1;
+always @(posedge clk) test_counter <= test_counter + 1;
 
 reg[12:0] sample_counter; // top bit indicates sample taken
 
-always @(posedge clk) if (ad > 20 && ad < 235) begin
+always @(posedge clk) begin
   counter <= counter + 1; // Used to request sample transfer
-  last_ad <= ad;
+  prescaler <= prescaler + 1;
+  reg_ad <= ad;
+  if (prescaler == speed) last_ad <= reg_ad;
   if (take_samples) waiting_for_trigger <= 1;
   if (waiting_for_trigger && (mode != 0 || trigger_type == 2 ||
-     (trigger_type == 0 && ad > trigger + 1 && last_ad < trigger - 1) || 
-      (trigger_type == 1 && ad < trigger - 1 && last_ad > trigger + 1))) begin
+     (trigger_type == 0 && prescaler == speed && ad > trigger + 1 && last_ad < trigger - 1) || 
+      (trigger_type == 1 && prescaler == speed && ad < trigger - 1 && last_ad > trigger + 1))) begin
     waiting_for_trigger <= 0;
     min <= 255;
     max <= 0;
@@ -52,12 +52,11 @@ always @(posedge clk) if (ad > 20 && ad < 235) begin
     prescaler <= 0;
   end
   if (~sample_counter[12]) begin
-    prescaler <= prescaler + 1;
     if (prescaler == speed) begin
       if (ad < min) min <= ad;
       if (ad > max) max <= ad;
       case (mode)
-      0: samples[sample_counter] <= ad;
+      0: samples[sample_counter] <= reg_ad;
       1: samples[sample_counter] <= sample_counter[7:0] - 128; 
       2: samples[sample_counter] <= 127 - sample_counter[7:0];
       3: samples[sample_counter] <= sample_counter[8] ? sample_counter[7:0] -128 : 127 - sample_counter[7:0];
@@ -72,7 +71,7 @@ always @(posedge clk) if (ad > 20 && ad < 235) begin
   end
 end
   
-assign led = max;
+assign led = trigger;
 assign button2 = ~(&counter); // Ask for samples on timer
 
 reg writing;

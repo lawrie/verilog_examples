@@ -13,7 +13,9 @@
 #define SAMPLES_PER_PAGE 1024
 
 #define MAX_POINTS 1500
-#define VOLTS_FACTOR 0.7
+
+// Approx 256/ GRID_SIZE * VOLTS_MULTIPLIER
+#define VOLTS_FACTOR 0.45
 
 #define TAG_DIAL 1
 #define TAG_VOLTS_PER_DIV 2
@@ -23,18 +25,23 @@
 #define TAG_TRIGGER 6
 #define TAG_AC_DC 7
 #define TAG_OFFSET 8
-#define TAG_FFT 9
+#define TAG_PROBE 9
+#define TAG_FFT 10
 #define TAG_OTHER 100
 
 #define FONT 26
+
+#define VOLTS_MULTIPLIER 0.064
+#define ZERO_OFFSET -37
 
 // Set to switch on debugging
 static bool  debug = 0;
 static bool vertical = true;
 static bool play_sample = false;
 
-static const char input_names[7][12] = {"volts/div", "speed", "mode", 
-                      "trig type", "trigger", "AC/DC", "offset"};
+static const char input_names[9][12] = {"volts/div", "speed", "mode", 
+                      "trig type", "trigger", "AC/DC", "offset", "x1/x10", 
+                      "scope/fft"};
 
 static const char trigger_names[4][12] = {"rising", "falling", "none", "reserved"};
 
@@ -48,7 +55,7 @@ static unsigned char parameters[14];
 
 // Parameters
 static float volts_per_div = 1.0; // volts
-static int micros_per_div = 1;  //microseconds
+static long nanos_per_div = 1000;  //microseconds
 static char mode = 0; // 0 = normal, others test
 static char trigger_type = 0; 
 static float trigger = 0.0; // volts
@@ -56,6 +63,7 @@ static bool ac_dc; // false: dc, true ac
 static float offset = 0; // offset in volts
 static int dc_offset = 0; // dc offset when in ac mode
 static boolean draw_fft = false;
+static boolean probe_x10 = true;
 
 // Measurements
 static long avg;
@@ -75,7 +83,7 @@ volatile bool dataFlag = false;
 // Used by dial
 static int value;
 
-//FFT stuff------------------------------------------------------------------
+// FFT stuff------------------------------------------------------------------
 #define FFTLEN 1024
 #include "cr4_fft_1024_stm32.h"
 uint16_t data16[FFTLEN];
@@ -210,6 +218,8 @@ void printdata16(uint16_t * data, int len) {
   } 
 }
 
+// End of FFT stuff
+
 void setup()
 {
   Serial.begin(9600);
@@ -267,16 +277,19 @@ void drawBoxes() {
   drawTaggedRect(TAG_MODE, 0xeedd82, 125, 5, 175, 15);
 
   // Pink trigger type
-  drawTaggedRect(TAG_TRIGGER_TYPE, 0xffc0cb, 190, 5, 240, 15);
+  drawTaggedRect(TAG_TRIGGER_TYPE, 0xffc0cb, 185, 5, 225, 15);
 
   // Orange trigger value
-  drawTaggedRect(TAG_TRIGGER, 0xffa500, 255, 5, 300, 15);
+  drawTaggedRect(TAG_TRIGGER, 0xffa500, 235, 5, 280, 15);
 
   // violet AC/DC
-  drawTaggedRect(TAG_AC_DC, 0xdda0dd, 315, 5, 345, 15);
+  drawTaggedRect(TAG_AC_DC, 0xdda0dd, 290, 5, 320, 15);
+
+  // Orange red probe
+  drawTaggedRect(TAG_PROBE, 0xff4500, 330, 5, 360, 15);
 
   // Blue offset
-  drawTaggedRect(TAG_OFFSET, 0x1e90ff, 360, 5, 400, 15);
+  drawTaggedRect(TAG_OFFSET, 0x1e90ff, 370, 5, 410, 15);
 
   // Orange Red Scope/FFT
   drawTaggedRect(TAG_FFT, 0xff4500, 425, 255, 465, 265);
@@ -314,8 +327,9 @@ void drawBoxes() {
   GD.Tag(TAG_VOLTS_PER_DIV);
   GD.cmd_text(35, 10, FONT, OPT_CENTER, num);
   
-  if (micros_per_div < 1024) sprintf(num,"%3dus", micros_per_div);
-  else sprintf(num,"%3dms", micros_per_div/1024);
+  if (nanos_per_div < 1000) sprintf(num,"%3dns", nanos_per_div);
+  else if (nanos_per_div < 1000000) sprintf(num,"%3dus", nanos_per_div / 1000);
+  else sprintf(num,"%3dms", nanos_per_div/100000);
   GD.Tag(TAG_SPEED);
   GD.cmd_text(90, 10, FONT, OPT_CENTER, num);
 
@@ -325,19 +339,23 @@ void drawBoxes() {
 
   sprintf(num, "%s",trigger_names[trigger_type]);
   GD.Tag(TAG_TRIGGER_TYPE);
-  GD.cmd_text(215, 10, FONT, OPT_CENTER, num);
+  GD.cmd_text(205, 10, FONT, OPT_CENTER, num);
 
   sprintf(num, "%1.2fv",trigger);
   GD.Tag(TAG_TRIGGER);
-  GD.cmd_text(280, 10, FONT, OPT_CENTER, num);
+  GD.cmd_text(260, 10, FONT, OPT_CENTER, num);
 
   sprintf(num, "%s",(ac_dc ? "AC" : "DC"));
   GD.Tag(TAG_AC_DC);
-  GD.cmd_text(330, 10, FONT, OPT_CENTER, num);
+  GD.cmd_text(305, 10, FONT, OPT_CENTER, num);
+
+  sprintf(num, "%s",(probe_x10 ? "x10" : "x1"));
+  GD.Tag(TAG_PROBE);
+  GD.cmd_text(345, 10, FONT, OPT_CENTER, num);
 
   sprintf(num,"%2.1fv",offset);
   GD.Tag(TAG_OFFSET);
-  GD.cmd_text(380, 10, FONT, OPT_CENTER, num); 
+  GD.cmd_text(390, 10, FONT, OPT_CENTER, num); 
 
   GD.Tag(TAG_FFT);
   GD.cmd_text(445, 260, FONT, OPT_CENTER, draw_fft ? "FFT" : "Scope");  
@@ -349,9 +367,11 @@ void drawBoxes() {
     case 1: value = ((int) log2(speed+1))  * 7000; break;
     case 2: value = mode * 8192; break;
     case 3: value = trigger_type * 16384; break;
-    case 4: value = (((int) (trigger * 4))  * 1638) + 32768; break;
+    case 4: value = (((int) (trigger * 4))  * 819) + 32768; break;
     case 5: value = ac_dc * 32768; break;
-    case 6: value = (((int) offset * 2) * 3276) + 32768; break;
+    case 6: value = (((int) offset * 2) * 1638) + 32768; break;
+    case 7: value = probe_x10 * 32768; break;
+    case 8: value = draw_fft * 32768; break;
   }
   
   GD.Tag(TAG_DIAL);
@@ -360,19 +380,19 @@ void drawBoxes() {
 
   GD.Tag(TAG_OTHER);
   
-  sprintf(num, "%2.1fv",((float) avg * 8 / 128) + 2.3);
-  GD.cmd_text(30, 260, FONT, OPT_CENTER, num);
+  sprintf(num, "%2.2fv",((float) (avg - ZERO_OFFSET) * VOLTS_MULTIPLIER));
+  GD.cmd_text(35, 260, FONT, OPT_CENTER, num);
 
-  sprintf(num, "%2.1fv",((float) (vmax - vmin) * 8 / 128));
+  sprintf(num, "%2.2fv",((float) (vmax - vmin) * VOLTS_MULTIPLIER));
   GD.cmd_text(90, 260, FONT, OPT_CENTER, num); 
 
-  sprintf(num, "%2.1fv",((float) (vmax) * 8 / 128) + 2.3);
+  sprintf(num, "%2.2fv",((float) (vmax - ZERO_OFFSET) * VOLTS_MULTIPLIER));
   GD.cmd_text(150, 260, FONT, OPT_CENTER, num); 
 
-  sprintf(num, "%2.1fv",((float) (vmin) * 8 / 128) + 2.3);
+  sprintf(num, "%2.2fv",((float) (vmin - ZERO_OFFSET) * VOLTS_MULTIPLIER));
   GD.cmd_text(210, 260, FONT, OPT_CENTER, num);
 
-  sprintf(num, "%2.1fv",vrms);
+  sprintf(num, "%2.2fv",vrms);
   GD.cmd_text(270, 260, FONT, OPT_CENTER, num);  
 
   char units[2];
@@ -407,26 +427,24 @@ void drawBoxes() {
   switch (selected) {
     case 0: volts_per_div = ((float) (value / 4096) + 1) / 4; break;
     case 1: speed = pow(2, (value / 7000)) -1; break;
-    case 2:  mode = value/8192; break;
+    case 2: mode = value/8192; break;
     case 3: trigger_type = value / 16384; break;
-    case 4: trigger = (((float) value - 32768) / 1638) / 4; break;
+    case 4: trigger = (((float) value - 32768) / 819) / 4; break;
     case 5: ac_dc = value / 32768; break;
-    case 6: offset = (((float) value - 32768) / 3276) / 2; break;
+    case 6: offset = (((float) value - 32768) / 1638) / 2; break;
+    case 7: probe_x10 = value / 32768; break;
+    case 8: draw_fft = value /32768; break;
   }
-  micros_per_div = (speed + 1);
+  nanos_per_div = (speed + 1) * 1000;
 
   byte tag = GD.inputs.tag;
 
   if (tag > 0) {
     if (debug) Serial.print("Tag: ");
     if (debug) Serial.println(tag);
-    if (tag >= TAG_VOLTS_PER_DIV && tag <= TAG_OFFSET) {
+    if (tag >= TAG_VOLTS_PER_DIV && tag <= TAG_FFT) {
       selected = tag-2;
-    } else if (tag == TAG_FFT) {
-      draw_fft ^= 1;
-      Serial.print("draw_fft is ");
-      Serial.println(draw_fft);
-    }
+    } 
   }
 }
 
@@ -475,6 +493,7 @@ void drawFFT(int start) {
   sprintf(buf, "%3d", (int) (max_freq));
   GD.cmd_text(240, 40, 30, OPT_CENTER, buf);
 }
+
 void drawGraph() {
   GD.Begin(POINTS);
   GD.PointSize(16);
@@ -483,7 +502,7 @@ void drawGraph() {
   int oldx, oldy;
   for(int i=0;i<SAMPLES_PER_PAGE;i++) {
     int px = (i*W)/SAMPLES_PER_PAGE;
-    int py = dc_offset + H/2 - ((int) GRID_SIZE*offset) -((int) samples[i]/(volts_per_div*VOLTS_FACTOR));
+    int py = H/2 - ((int) GRID_SIZE*offset/volts_per_div) -((int) (samples[i] - dc_offset)/(volts_per_div*VOLTS_FACTOR));
     if (i == 0 || px != oldx || abs(py - oldy) > 0) {
       if (points++ > MAX_POINTS) return;
       GD.Vertex2ii(px,py);
@@ -495,7 +514,7 @@ void drawGraph() {
         for(int j=(int) samples[i]+1;j<(int) samples[i-1]-1;j+= 2) {
           if (points++ > MAX_POINTS) return;
           px = (i*W)/SAMPLES_PER_PAGE;
-          py = dc_offset + H/2 - ((int) GRID_SIZE*offset) -(j/(volts_per_div*VOLTS_FACTOR));
+          py = H/2 - ((int) GRID_SIZE*offset/volts_per_div) -((j - dc_offset)/(volts_per_div*VOLTS_FACTOR));
           GD.Vertex2ii(px, py);
         }
       } else {
@@ -503,7 +522,7 @@ void drawGraph() {
           if (points++ > MAX_POINTS) return;
           char buf[10];
           px = (i*W)/SAMPLES_PER_PAGE;
-          py = dc_offset + H/2 - ((int) GRID_SIZE*offset) -(j/(volts_per_div*VOLTS_FACTOR));
+          py = H/2 - ((int) GRID_SIZE*offset/volts_per_div) -((j - dc_offset)/(volts_per_div*VOLTS_FACTOR));
           sprintf(buf,"(%d,%d)", px, py);
           if (debug) Serial.println(buf);
           GD.Vertex2ii(px, py);  
@@ -520,7 +539,7 @@ void drawTrigger() {  // Draw trigger
   Poly po;
   GD.ColorRGB(0xffff00);
   po.begin();
-  int y = H/2 - ((int) (((offset * volts_per_div) + trigger) * (GRID_SIZE / volts_per_div)));
+  int y = H/2 + (ac_dc ? (avg - ZERO_OFFSET)/(volts_per_div*VOLTS_FACTOR) : 0) - ((int) (((trigger + offset) * GRID_SIZE)) / volts_per_div);
   if (debug) Serial.print("Trigger y value = ");
   if (debug) Serial.println(y);
   po.v(0, (y-5) * 16);
@@ -559,7 +578,7 @@ void loop() {
 
     parameters[0] = mode;
     parameters[1] = speed;
-    parameters[2] = (int) ((trigger+5.0) * 25.5);
+    parameters[2] = (int) ((trigger / VOLTS_MULTIPLIER) + 128 + ZERO_OFFSET);
     parameters[3] = trigger_type;
 
     if (debug) Serial.println("Fetching data");
@@ -589,9 +608,7 @@ void loop() {
         bool rising = false;
         bool falling = false;
         if (mode == 0) {
-          samples[i] = (int) samples[i] + 128; // Samples is negative and offset by 2
-          if (i > 0 && (samples[i] < -124 || samples[i] > 125)) samples[i] = samples[i-1];
-
+          samples[i] = (int) samples[i] + 128; // Make signed
         }
         tot += (int) samples[i];
         if ((int) samples[i] > vmax) vmax = (int) samples[i];
@@ -601,24 +618,31 @@ void loop() {
         if (i > 0 && (int) samples[i] < (int) samples[i-1]) falling = true;
 
         if (rising && trigger_type == 0 && 
-            (int) samples[i] >= (int) (trigger * 25.5) && 
-            (int) samples[i-1] < (int) (trigger * 25.5)) {
+            (int) samples[i] - ZERO_OFFSET >= (int) (trigger /VOLTS_MULTIPLIER) && 
+            (int) samples[i-1] - ZERO_OFFSET < (int) (trigger / VOLTS_MULTIPLIER)) {
           if (triggered == 0) trig_time = i;  
           if (triggered == 1) wavelength = i - trig_time;           
           triggered++; 
         }
 
         if (falling && trigger_type == 0 && 
-            (int) samples[i] <= (int) (trigger * 25.5) && 
-            (int) samples[i-1] > (int) (trigger * 25.5)) {
+            (int) samples[i] - ZERO_OFFSET <= (int) (trigger / VOLTS_MULTIPLIER) && 
+            (int) samples[i-1] - ZERO_OFFSET  > (int) (trigger / VOLTS_MULTIPLIER)) {
           if (triggered == 1 && i > trig_time) untrig_time = i;             
         }
 
         if (falling && trigger_type == 1 && 
-            (int) samples[i] <= (int) (trigger * 25.5) &&
-            (int) samples[i-1] > (int) (trigger * 25.5)) {
+            (int) samples[i] - ZERO_OFFSET <= (int) (trigger / VOLTS_MULTIPLIER) &&
+            (int) samples[i-1]- ZERO_OFFSET > (int) (trigger / VOLTS_MULTIPLIER)) {
           if (triggered == 0) trig_time = i;    
+          if (triggered == 1) wavelength = i - trig_time; 
           triggered++; 
+        }
+                
+        if (rising && trigger_type == 1 && 
+            (int) samples[i] >= (int) (trigger / VOLTS_MULTIPLIER) && 
+            (int) samples[i-1] < (int) (trigger / VOLTS_MULTIPLIER)) {
+          if (triggered == 1 && i > trig_time) untrig_time = i;            
         }
     }
 
@@ -638,8 +662,8 @@ void loop() {
 
     vrms = sqrt((float) rms / NUM_SAMPLES) * 5/128;
     avg = tot /NUM_SAMPLES;
-    dc_offset = (ac_dc ? avg : 0);
-    frequency = ((float) triggered) * 14.9 * 1024 / micros_per_div;
+    dc_offset = (ac_dc ? avg : ZERO_OFFSET);
+    frequency = ((float) triggered) * 14.9 * 1000000 / nanos_per_div;
 
     sprintf(buff,"Avg: %ld, max: %d, min: %d, rms: %2.1f. trig: %d, freq: %ld, sel %d, speed: %d, tt: %d, duty: %d%%", 
             avg, (int) vmax, (int) vmin, vrms, triggered, frequency, selected, speed, trigger_type, duty);
@@ -710,7 +734,6 @@ void loop() {
 }
 
 void dataReady() {
-  //Serial.println("Data ready");
   dataFlag = true;
 }
 
