@@ -40,21 +40,23 @@ always @(posedge clk) begin
   counter <= counter + 1; // Used to request sample transfer
   prescaler <= prescaler + 1;
   reg_ad <= ad;
-  if (prescaler == speed) last_ad <= reg_ad;
+  if (prescaler == speed) begin
+    last_ad <= reg_ad;
+    prescaler <= 1;
+  end
   if (take_samples) waiting_for_trigger <= 1;
   if (waiting_for_trigger && (mode != 0 || trigger_type == 2 ||
-     (trigger_type == 0 && prescaler == speed && ad > trigger + 1 && last_ad < trigger - 1) || 
-      (trigger_type == 1 && prescaler == speed && ad < trigger - 1 && last_ad > trigger + 1))) begin
+     (trigger_type == 0 && prescaler == speed && ad >= trigger && last_ad < trigger) || 
+      (trigger_type == 1 && prescaler == speed && ad <= trigger && last_ad > trigger))) begin
     waiting_for_trigger <= 0;
     min <= 255;
     max <= 0;
     sample_counter <= 0;
-    prescaler <= 0;
   end
   if (~sample_counter[12]) begin
     if (prescaler == speed) begin
-      if (ad < min) min <= ad;
-      if (ad > max) max <= ad;
+      if (ad < min) min <= reg_ad;
+      if (ad > max) max <= reg_ad;
       case (mode)
       0: samples[sample_counter] <= reg_ad;
       1: samples[sample_counter] <= sample_counter[7:0] - 128; 
@@ -66,7 +68,6 @@ always @(posedge clk) begin
       7: samples[sample_counter] <= trigger_type; // debug
       endcase
       sample_counter <= sample_counter + 1;
-      prescaler <= 0;
     end      
   end
 end
