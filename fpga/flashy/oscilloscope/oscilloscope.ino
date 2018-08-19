@@ -28,6 +28,7 @@
 #define TAG_OFFSET 8
 #define TAG_PROBE 9
 #define TAG_FFT 10
+#define TAG_RUNNING 11
 #define TAG_OTHER 100
 
 #define FONT 26
@@ -65,6 +66,7 @@ static float offset = 0; // offset in volts
 static int dc_offset = 0; // dc offset when in ac mode
 static boolean draw_fft = false;
 static boolean probe_x10 = true;
+static bool running = true;
 
 // Measurements
 static long avg;
@@ -295,6 +297,9 @@ void drawBoxes() {
   // Orange Red Scope/FFT
   drawTaggedRect(TAG_FFT, 0xff4500, 425, 255, 465, 265);
 
+  // Acquamarine running
+  drawTaggedRect(TAG_RUNNING, 0x66cdaa, 425, 225, 465, 240);
+
   GD.Tag(TAG_OTHER);
   
   // Green average voltage
@@ -360,6 +365,9 @@ void drawBoxes() {
 
   GD.Tag(TAG_FFT);
   GD.cmd_text(445, 260, FONT, OPT_CENTER, draw_fft ? "FFT" : "Scope");  
+
+  GD.Tag(TAG_RUNNING);
+  GD.cmd_text(445, 235, FONT, OPT_CENTER, (running ? "Stop" : "Run"));
 
   if (debug) Serial.println("Drawing dial");
 
@@ -445,7 +453,10 @@ void drawBoxes() {
     if (debug) Serial.println(tag);
     if (tag >= TAG_VOLTS_PER_DIV && tag <= TAG_FFT) {
       selected = tag-2;
-    } 
+    } else if (tag == TAG_RUNNING) {
+      running ^= 1;
+      delay(500);
+    }
   }
 }
 
@@ -744,6 +755,6 @@ void loop() {
 }
 
 void dataReady() {
-  dataFlag = true;
+  if (running) dataFlag = true;
 }
 
