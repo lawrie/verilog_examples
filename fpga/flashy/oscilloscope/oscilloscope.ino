@@ -491,7 +491,7 @@ void drawFFT(int start) {
   } 
 
   char buf[12];
-  sprintf(buf, "%lu", (unsigned long) (((float) max_freq * CLK_FREQ) / (1024 * ((speed/8) + 1))));
+  sprintf(buf, "%lu", (unsigned long) (((float) max_freq * CLK_FREQ) / (1024 * (float) ((speed/8) + 1))));
   GD.cmd_text(240, 40, 30, OPT_CENTER, buf);
 }
 
