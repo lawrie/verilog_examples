@@ -11,6 +11,7 @@
 #define QSPI_CHUNK 1
 #define CHUNK_SIZE 1024
 #define SAMPLES_PER_PAGE 1024
+#define CLK_FREQ 60000000
 
 #define MAX_POINTS 1500
 
@@ -466,8 +467,8 @@ void drawFFT(int start) {
   GD.Begin(LINES);
   GD.PointSize(32);
 
-  int max_vol= 0;
-  int max_freq = 0;
+  unsigned int max_vol= 0;
+  unsigned int max_freq = 0;
 
   for(int i=0;i<=FFTLEN;i++) 
     data16[i] = ((int) samples[start+i] + 128) * 40;
@@ -490,7 +491,7 @@ void drawFFT(int start) {
   } 
 
   char buf[12];
-  sprintf(buf, "%3d", (int) (max_freq));
+  sprintf(buf, "%lu", (unsigned long) (((float) max_freq * CLK_FREQ) / (1024 * ((speed/8) + 1))));
   GD.cmd_text(240, 40, 30, OPT_CENTER, buf);
 }
 
@@ -577,7 +578,7 @@ void loop() {
     vmax = -128;
     vmin = 127;
     unsigned long start = micros();
-    long rms = 0;
+    long long rms = 0;
 
     parameters[0] = mode;
     parameters[1] = speed / 8;
@@ -616,7 +617,7 @@ void loop() {
         tot += (int) samples[i];
         if ((int) samples[i] > vmax) vmax = (int) samples[i];
         if ((int) samples[i] < vmin) vmin = (int) samples[i];
-        rms += ((int) samples[i]) * ((int) samples[i]);
+
         if (i > 0 && (int) samples[i] > (int) samples[i-1]) rising = true;
         if (i > 0 && (int) samples[i] < (int) samples[i-1]) falling = true;
 
@@ -663,10 +664,16 @@ void loop() {
       printdataset(y,FFTLEN/2+1,1024);
     }
 
-    vrms = sqrt((float) rms / NUM_SAMPLES) * 5/128;
     avg = tot /NUM_SAMPLES;
+
+    for(int i=0;i<NUM_SAMPLES;i++) {
+      rms += ((int) samples[i] - avg) * ((int) samples[i] - avg);
+    }
+
+    vrms = sqrt((float) rms / NUM_SAMPLES) * VOLTS_MULTIPLIER;
+    
     dc_offset = (ac_dc ? avg : ZERO_OFFSET);
-    frequency = ((float) triggered) * 14.9 * 1000000 / nanos_per_div;
+    frequency = ((float) triggered * CLK_FREQ) / (NUM_SAMPLES * (speed / 8) + 1);
 
     sprintf(buff,"Avg: %ld, max: %d, min: %d, rms: %2.1f. trig: %d, freq: %ld, sel %d, speed: %d, tt: %d, duty: %d%%", 
             avg, (int) vmax, (int) vmin, vrms, triggered, frequency, selected, speed, trigger_type, duty);
