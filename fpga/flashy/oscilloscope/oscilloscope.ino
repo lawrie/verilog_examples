@@ -66,6 +66,7 @@ static float offset = 0; // offset in volts
 static int dc_offset = 0; // dc offset when in ac mode
 static boolean draw_fft = false;
 static boolean probe_x10 = true;
+int probe_factor = 1;
 static bool running = true;
 
 // Measurements
@@ -234,9 +235,9 @@ void setup()
   fill(data32,1,FFTLEN);
   fill(data16,1,FFTLEN);
    
-   selftest();
+  //selftest();
 
-   // Configure any bitstream in flash memory
+  // Configure any bitstream in flash memory
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, 1);
   myStorm.FPGAConfigure((const byte*)0x0801F000, 135100);
@@ -263,6 +264,7 @@ void drawColoredRect(uint32_t color, int x1, int y1,
   GD.Vertex2ii(x1, y1);
   GD.Vertex2ii(x2, y2);
 }
+
 void drawBoxes() {
   char num[20];
 
@@ -389,19 +391,19 @@ void drawBoxes() {
 
   GD.Tag(TAG_OTHER);
   
-  sprintf(num, "%2.2fv",((float) (avg - ZERO_OFFSET) * VOLTS_MULTIPLIER));
+  sprintf(num, "%2.2fv",((float) (avg - ZERO_OFFSET) * VOLTS_MULTIPLIER)/probe_factor);
   GD.cmd_text(35, 260, FONT, OPT_CENTER, num);
 
-  sprintf(num, "%2.2fv",((float) (vmax - vmin) * VOLTS_MULTIPLIER));
+  sprintf(num, "%2.2fv",((float) (vmax - vmin) * VOLTS_MULTIPLIER)/probe_factor);
   GD.cmd_text(90, 260, FONT, OPT_CENTER, num); 
 
-  sprintf(num, "%2.2fv",((float) (vmax - ZERO_OFFSET) * VOLTS_MULTIPLIER));
+  sprintf(num, "%2.2fv",((float) (vmax - ZERO_OFFSET) * VOLTS_MULTIPLIER)/probe_factor);
   GD.cmd_text(150, 260, FONT, OPT_CENTER, num); 
 
-  sprintf(num, "%2.2fv",((float) (vmin - ZERO_OFFSET) * VOLTS_MULTIPLIER));
+  sprintf(num, "%2.2fv",((float) (vmin - ZERO_OFFSET) * VOLTS_MULTIPLIER)/probe_factor);
   GD.cmd_text(210, 260, FONT, OPT_CENTER, num);
 
-  sprintf(num, "%2.2fv",vrms);
+  sprintf(num, "%2.2fv",vrms/probe_factor);
   GD.cmd_text(270, 260, FONT, OPT_CENTER, num);  
 
   char units[2];
@@ -444,7 +446,9 @@ void drawBoxes() {
     case 7: probe_x10 = value / 32768; break;
     case 8: draw_fft = value /32768; break;
   }
+  
   nanos_per_div = ((speed + 1) * 125);
+  probe_factor = (probe_x10 ? 1 : 10);
 
   byte tag = GD.inputs.tag;
 
@@ -517,7 +521,7 @@ void drawGraph() {
   for(int i=0;i<SAMPLES_PER_PAGE;i++) {
     int ii = i/ divisor;
     int px = (i*W)/SAMPLES_PER_PAGE;
-    int py = H/2 - ((int) GRID_SIZE*offset/volts_per_div) -((int) (samples[ii] - dc_offset)/(volts_per_div*VOLTS_FACTOR));
+    int py = H/2 - ((int) GRID_SIZE*offset/volts_per_div) -((int) (samples[ii] - dc_offset)/(volts_per_div*VOLTS_FACTOR/probe_factor));
     if (i == 0 || px != oldx || abs(py - oldy) > 0) {
       if (points++ > MAX_POINTS) return;
       GD.Vertex2ii(px,py);
@@ -529,7 +533,7 @@ void drawGraph() {
         for(int j=(int) samples[ii]+1;j<(int) samples[ii-1]-1;j+= 2) {
           if (points++ > MAX_POINTS) return;
           px = (i*W)/SAMPLES_PER_PAGE;
-          py = H/2 - ((int) GRID_SIZE*offset/volts_per_div) -((j - dc_offset)/(volts_per_div*VOLTS_FACTOR));
+          py = H/2 - ((int) GRID_SIZE*offset/volts_per_div) -((j - dc_offset)/(volts_per_div*VOLTS_FACTOR/probe_factor));
           GD.Vertex2ii(px, py);
         }
       } else {
@@ -537,7 +541,7 @@ void drawGraph() {
           if (points++ > MAX_POINTS) return;
           char buf[10];
           px = (i*W)/SAMPLES_PER_PAGE;
-          py = H/2 - ((int) GRID_SIZE*offset/volts_per_div) -((j - dc_offset)/(volts_per_div*VOLTS_FACTOR));
+          py = H/2 - ((int) GRID_SIZE*offset/volts_per_div) -((j - dc_offset)/(volts_per_div*VOLTS_FACTOR/probe_factor));
           sprintf(buf,"(%d,%d)", px, py);
           if (debug) Serial.println(buf);
           GD.Vertex2ii(px, py);  
@@ -550,11 +554,11 @@ void drawGraph() {
   if (debug) Serial.println(points);
 }
 
-void drawTrigger() {  // Draw trigger
+void drawTrigger() {
   Poly po;
   GD.ColorRGB(0xffff00);
   po.begin();
-  int y = H/2 + (ac_dc ? (avg - ZERO_OFFSET)/(volts_per_div*VOLTS_FACTOR) : 0) - ((int) (((trigger + offset) * GRID_SIZE)) / volts_per_div);
+  int y = H/2 + (ac_dc ? (avg - ZERO_OFFSET)/(volts_per_div*VOLTS_FACTOR/probe_factor) : 0) - ((int) (((trigger + offset) * GRID_SIZE)) / volts_per_div);
   if (debug) Serial.print("Trigger y value = ");
   if (debug) Serial.println(y);
   po.v(0, (y-5) * 16);
