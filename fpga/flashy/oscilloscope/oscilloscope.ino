@@ -29,7 +29,8 @@
 #define TAG_PROBE 9
 #define TAG_FFT 10
 #define TAG_TRIGGER_POS 11
-#define TAG_RUNNING 12
+#define TAG_PAN 12
+#define TAG_RUNNING 13
 #define TAG_OTHER 100
 
 #define FONT 26
@@ -42,9 +43,9 @@ static bool  debug = 0;
 static bool vertical = true;
 static bool play_sample = false;
 
-static const char input_names[10][12] = {"volts/div", "speed", "mode", 
+static const char input_names[11][12] = {"volts/div", "speed", "mode", 
                       "trig type", "trigger", "AC/DC", "offset", "x1/x10", 
-                      "scope/fft","trig pos"};
+                      "scope/fft","trig pos", "pan"};
 
 static const char trigger_names[4][12] = {"rising", "falling", "none", "reserved"};
 
@@ -83,6 +84,7 @@ static float vrms;
 static long frequency;
 static int wavelength;
 static int duty = 50;
+int pan = 0;
 
 // Selected parameter
 static byte selected = 2;
@@ -311,6 +313,9 @@ void drawBoxes() {
   // Acquamarine trigger position
   drawTaggedRect(TAG_TRIGGER_POS, 0x66cdaa, 15, 225, 55, 240);
 
+  // Acquamarine pan
+  drawTaggedRect(TAG_PAN, 0x66cdaa, 15, 25, 55, 35);
+
   GD.Tag(TAG_OTHER);
   
   // Green average voltage
@@ -343,6 +348,10 @@ void drawBoxes() {
   sprintf(num, "%1.1fv",volts_per_div);
   GD.Tag(TAG_VOLTS_PER_DIV);
   GD.cmd_text(35, 10, FONT, OPT_CENTER, num);
+
+  sprintf(num, "%4d",pan);
+  GD.Tag(TAG_PAN);
+  GD.cmd_text(35, 30, FONT, OPT_CENTER, num);
   
   if (nanos_per_div < 1000) sprintf(num,"%3dns", nanos_per_div);
   else if (nanos_per_div < 1000000) sprintf(num,"%3dus", nanos_per_div / 1000);
@@ -396,7 +405,8 @@ void drawBoxes() {
     case 6: value = (((int) offset * 2) * 1638) + 32768; break;
     case 7: value = probe_x10 * 32768; break;
     case 8: value = draw_fft * 32768; break;
-    case 9: value = trigger_position * 256;
+    case 9: value = trigger_position * 256; break;
+    case 10: value = pan * 21; break;
   }
   
   GD.Tag(TAG_DIAL);
@@ -460,6 +470,7 @@ void drawBoxes() {
     case 7: probe_x10 = value / 32768; break;
     case 8: draw_fft = value /32768; break;
     case 9: trigger_position = value / 256; break;
+    case 10: pan = min(value / 21, 3072); break;
   }
   
   nanos_per_div = ((speed + 1) * 125);
@@ -474,7 +485,7 @@ void drawBoxes() {
   if (tag > 0) {
     if (debug) Serial.print("Tag: ");
     if (debug) Serial.println(tag);
-    if (tag >= TAG_VOLTS_PER_DIV && tag <= TAG_TRIGGER_POS) {
+    if (tag >= TAG_VOLTS_PER_DIV && tag <= TAG_PAN) {
       selected = tag-2;
     } else if (tag == TAG_RUNNING) {
       running ^= 1;
@@ -538,7 +549,7 @@ void drawGraph() {
   int divisor = (nanos_per_div >= 1000 ? 1 : 1024 / nanos_per_div);
   
   for(int i=0;i<SAMPLES_PER_PAGE;i++) {
-    int ii = i/ divisor;
+    int ii = (pan + i)/ divisor;
     int px = (i*W)/SAMPLES_PER_PAGE;
     int py = H/2 - ((int) GRID_SIZE*offset/volts_per_div) -((int) (samples[ii] - dc_offset)/(volts_per_div*VOLTS_FACTOR/probe_factor));
     if (i == 0 || px != oldx || abs(py - oldy) > 0) {
