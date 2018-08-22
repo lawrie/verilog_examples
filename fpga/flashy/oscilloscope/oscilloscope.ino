@@ -28,7 +28,8 @@
 #define TAG_OFFSET 8
 #define TAG_PROBE 9
 #define TAG_FFT 10
-#define TAG_RUNNING 11
+#define TAG_TRIGGER_POS 11
+#define TAG_RUNNING 12
 #define TAG_OTHER 100
 
 #define FONT 26
@@ -41,12 +42,16 @@ static bool  debug = 0;
 static bool vertical = true;
 static bool play_sample = false;
 
-static const char input_names[9][12] = {"volts/div", "speed", "mode", 
+static const char input_names[10][12] = {"volts/div", "speed", "mode", 
                       "trig type", "trigger", "AC/DC", "offset", "x1/x10", 
-                      "scope/fft"};
+                      "scope/fft","trig pos"};
 
 static const char trigger_names[4][12] = {"rising", "falling", "none", "reserved"};
 
+static const char modes[10][8] = {"auto", "norm", "single",
+                                 "saw u", "saw d", "tri", "square",
+                                 "speed", "trig", "type"};
+                                  
 static const float Pi = 3.141593;
 
 // The samples
@@ -58,7 +63,7 @@ static unsigned char parameters[14];
 // Parameters
 static float volts_per_div = 1.0; // volts
 static long nanos_per_div = 1000;  // nanoseconds
-static char mode = 0; // 0 = normal, others test
+static char mode = 0, old_mode = 0; 
 static char trigger_type = 2; 
 static float trigger = 0.0; // volts
 static bool ac_dc = true; // false: dc, true ac
@@ -68,6 +73,7 @@ static boolean draw_fft = false;
 static boolean probe_x10 = true;
 int probe_factor = 1;
 static bool running = true;
+static byte trigger_position = 0;
 
 // Measurements
 static long avg;
@@ -302,6 +308,9 @@ void drawBoxes() {
   // Acquamarine running
   drawTaggedRect(TAG_RUNNING, 0x66cdaa, 425, 225, 465, 240);
 
+  // Acquamarine trigger position
+  drawTaggedRect(TAG_TRIGGER_POS, 0x66cdaa, 15, 225, 55, 240);
+
   GD.Tag(TAG_OTHER);
   
   // Green average voltage
@@ -341,7 +350,7 @@ void drawBoxes() {
   GD.Tag(TAG_SPEED);
   GD.cmd_text(90, 10, FONT, OPT_CENTER, num);
 
-  sprintf(num, "mode:%d",mode);
+  sprintf(num, "%s",modes[mode]);
   GD.Tag(TAG_MODE);
   GD.cmd_text(150, 10, FONT, OPT_CENTER, num);
 
@@ -365,6 +374,10 @@ void drawBoxes() {
   GD.Tag(TAG_OFFSET);
   GD.cmd_text(390, 10, FONT, OPT_CENTER, num); 
 
+  GD.Tag(TAG_TRIGGER_POS);
+  sprintf(num, "%4d",trigger_position * 4);
+  GD.cmd_text(35, 235, FONT, OPT_CENTER, num);  
+
   GD.Tag(TAG_FFT);
   GD.cmd_text(445, 260, FONT, OPT_CENTER, draw_fft ? "FFT" : "Scope");  
 
@@ -376,13 +389,14 @@ void drawBoxes() {
   switch (selected) {
     case 0: value = (((int) (volts_per_div * 4)) - 1) * 4096; break;
     case 1: value = ((int) log2(speed+1))  * 5461; break;
-    case 2: value = mode * 8192; break;
+    case 2: value = mode * 6553; break;
     case 3: value = trigger_type * 16384; break;
     case 4: value = (((int) (trigger * 4))  * 819) + 32768; break;
     case 5: value = ac_dc * 32768; break;
     case 6: value = (((int) offset * 2) * 1638) + 32768; break;
     case 7: value = probe_x10 * 32768; break;
     case 8: value = draw_fft * 32768; break;
+    case 9: value = trigger_position * 256;
   }
   
   GD.Tag(TAG_DIAL);
@@ -438,24 +452,29 @@ void drawBoxes() {
   switch (selected) {
     case 0: volts_per_div = ((float) (value / 4096) + 1) / 4; break;
     case 1: speed = pow(2, (value / 5461)) -1; break;
-    case 2: mode = value/8192; break;
+    case 2: mode = value/6553; break;
     case 3: trigger_type = value / 16384; break;
     case 4: trigger = (((float) value - 32768) / 819) / 4; break;
     case 5: ac_dc = value / 32768; break;
     case 6: offset = (((float) value - 32768) / 1638) / 2; break;
     case 7: probe_x10 = value / 32768; break;
     case 8: draw_fft = value /32768; break;
+    case 9: trigger_position = value / 256; break;
   }
   
   nanos_per_div = ((speed + 1) * 125);
   probe_factor = (probe_x10 ? 1 : 10);
+  if (mode != old_mode) {
+    old_mode = mode;
+    running = true;
+  }
 
   byte tag = GD.inputs.tag;
 
   if (tag > 0) {
     if (debug) Serial.print("Tag: ");
     if (debug) Serial.println(tag);
-    if (tag >= TAG_VOLTS_PER_DIV && tag <= TAG_FFT) {
+    if (tag >= TAG_VOLTS_PER_DIV && tag <= TAG_TRIGGER_POS) {
       selected = tag-2;
     } else if (tag == TAG_RUNNING) {
       running ^= 1;
@@ -599,6 +618,7 @@ void loop() {
     parameters[1] = speed / 8;
     parameters[2] = (int) ((trigger / VOLTS_MULTIPLIER) + 128 + ZERO_OFFSET);
     parameters[3] = trigger_type;
+    parameters[4] = trigger_position;
 
     if (debug) Serial.println("Fetching data");
     
@@ -626,7 +646,7 @@ void loop() {
     for(int i=0;i<NUM_SAMPLES;i++) {
         bool rising = false;
         bool falling = false;
-        if (mode == 0) {
+        if (mode < 3) {
           samples[i] = (int) samples[i] + 128; // Make signed
         }
         tot += (int) samples[i];
@@ -693,6 +713,8 @@ void loop() {
     sprintf(buff,"Avg: %ld, max: %d, min: %d, rms: %2.1f. trig: %d, freq: %ld, sel %d, speed: %d, tt: %d, duty: %d%%", 
             avg, (int) vmax, (int) vmin, vrms, triggered, frequency, selected, speed, trigger_type, duty);
     Serial.println(buff);
+
+    if (mode == 2) running = false;
 
     // Play the sample
     if (play_sample) {
