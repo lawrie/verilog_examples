@@ -14,7 +14,8 @@ wire clk;
     SB_PLL40_PAD #(
                 .FEEDBACK_PATH("SIMPLE"),
                 .DIVR(4'b0000),         // DIVR =  0
-                .DIVF(7'b1010011),      // DIVF =  83
+                //.DIVF(7'b1010011),      // DIVF =  83
+                .DIVF(7'b0111000),      // DIVF =  83
                 .DIVQ(3'b101),          // DIVQ =  5
                 .FILTER_RANGE(3'b001)   // FILTER_RANGE = 1
         ) uut (
